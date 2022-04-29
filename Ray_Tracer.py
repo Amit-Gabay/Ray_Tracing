@@ -1,4 +1,7 @@
+import os
 import sys
+import numpy as np
+from PIL import Image
 
 
 class Scene:
@@ -13,9 +16,9 @@ class Scene:
 
 
 class Camera:
-    def __init__(self, pos, look_up, up_vector, screen_dist, screen_width):
+    def __init__(self, pos, look_at, up_vector, screen_dist, screen_width):
         self.pos = pos
-        self.look_up = look_up
+        self.look_at = look_at
         self.up_vector = up_vector
         self.screen_dist = screen_dist
         self.screen_width = screen_width
@@ -85,12 +88,12 @@ def parse_scene(scene_path):
         obj_name = line[0]
 
         if obj_name == b'cam':
-            pos = (float(line[1]), float(line[2]), float(line[3]))
-            look_up = (float(line[4]), float(line[5]), float(line[6]))
-            up_vector = (float(line[7]), float(line[8]), float(line[9]))
+            pos = np.NDarray((float(line[1]), float(line[2]), float(line[3])))
+            look_at = np.NDArray((float(line[4]), float(line[5]), float(line[6])))
+            up_vector = np.NDArray((float(line[7]), float(line[8]), float(line[9])))
             screen_dist = float(line[10])
             screen_width = float(line[11])
-            camera = Camera(pos, look_up, up_vector, screen_dist, screen_width)
+            camera = Camera(pos, look_at, up_vector, screen_dist, screen_width)
 
         elif obj_name == b'set':
             bg_color = (float(line[1]), float(line[2]), float(line[3]))
@@ -136,8 +139,33 @@ def parse_scene(scene_path):
     return scene
 
 
+def calc_pixel_location(camera):
+    look_at_vector = camera.look_at - camera.pos
+    central_vector = look_at_vector * camera.screen_dist
+    x = np.NDArray((1, 1, 1))  # take a random vector
+    x -= x.dot(central_vector) * central_vector  # make it orthogonal to central_vector
+    x /= np.linalg.norm(x)
+    y = np.cross(central_vector, x)
+
+
+def save_image(image, output_path):
+    img = Image.fromarray(image)
+    img.save(output_path)
+
+
 def main(scene_path, output_path, img_width=500, img_height=500):
     scene = parse_scene(scene_path)
+    image = np.zeros((img_width, img_height, 3), dtype=float)
+    for i in range(img_width):
+        for j in range(img_height):
+            ray = construct_pixel_ray(scene.camera, i, j)
+            surface, min_intersect = find_min_intersect(scene, ray)
+            basic_color = calc_surface_color(scene, surface, min_itersect)
+            is_lit = trace_light_rays(scene, surface)
+            soft_shadow = produce_soft_shadow(scene. surface)
+            output_color = calc_output_color()
+            image[i, j] = output_color
+    save_image(image, output_path)
 
 
 if __name__ == '__main__':
