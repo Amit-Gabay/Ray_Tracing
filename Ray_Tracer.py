@@ -16,12 +16,13 @@ class Scene:
 
 
 class Camera:
-    def __init__(self, pos, look_at, up_vector, screen_dist, screen_width):
+    def __init__(self, pos, look_at, up_vector, screen_dist, screen_width, screen_height):
         self.pos = pos
         self.look_at = look_at
         self.up_vector = up_vector
         self.screen_dist = screen_dist
         self.screen_width = screen_width
+        self.screen_height = screen_height
 
 
 class Settings:
@@ -70,7 +71,7 @@ class Light:
         self.light_radius = light_radius
 
 
-def parse_scene(scene_path):
+def parse_scene(scene_path, asp_ratio):
     with open(scene_path, 'rb') as f:
         content = f.read()
 
@@ -90,10 +91,11 @@ def parse_scene(scene_path):
         if obj_name == b'cam':
             pos = np.NDarray((float(line[1]), float(line[2]), float(line[3])))
             look_at = np.NDArray((float(line[4]), float(line[5]), float(line[6])))
-            up_vector = np.NDArray((float(line[7]), float(line[8]), float(line[9])))
+            up_vector = np.NDArray((float(line[7]), float(line[8]), float(line[9]))) #TODO: add fix
             screen_dist = float(line[10])
             screen_width = float(line[11])
-            camera = Camera(pos, look_at, up_vector, screen_dist, screen_width)
+            screen_height = screen_width * asp_ratio
+            camera = Camera(pos, look_at, up_vector, screen_dist, screen_width, screen_height)
 
         elif obj_name == b'set':
             bg_color = (float(line[1]), float(line[2]), float(line[3]))
@@ -139,6 +141,22 @@ def parse_scene(scene_path):
     return scene
 
 
+def construct_pixel_ray(camera, i, j):
+    towards = camera.look_at - camera.pos
+    up = camera.up_vector
+    right = np.cross(towards, up)
+    P0 = camera.pos
+    d = camera.screen_dist
+    w = camera.screen_width
+    h = camera.screen_height
+
+    P_left = P0 + d * towards - (w * right) / 2
+    P_down = P0 + d * towards - (h * up) / 2
+    P = P_left + (j/w + 0.5) * w * right + P_down + (i/h + 0.5) * h * up
+    V = (P-P0) / np.linalg.norm(P-P0)
+    return V
+
+
 def calc_pixel_location(camera):
     look_at_vector = camera.look_at - camera.pos
     central_vector = look_at_vector * camera.screen_dist
@@ -154,7 +172,7 @@ def save_image(image, output_path):
 
 
 def main(scene_path, output_path, img_width=500, img_height=500):
-    scene = parse_scene(scene_path)
+    scene = parse_scene(scene_path, img_height/img_width)
     image = np.zeros((img_width, img_height, 3), dtype=float)
     for i in range(img_width):
         for j in range(img_height):
