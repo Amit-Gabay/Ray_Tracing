@@ -156,14 +156,67 @@ def construct_pixel_ray(camera, i, j):
     V = (P-P0) / np.linalg.norm(P-P0)
     return V
 
+# perdicular plave from vector
+# x = np.NDArray((1, 1, 1))  # take a random vector
+# x -= x.dot(central_vector) * central_vector  # make it orthogonal to central_vector
+# x /= np.linalg.norm(x)
+# y = np.cross(central_vector, x)
 
-def calc_pixel_location(camera):
-    look_at_vector = camera.look_at - camera.pos
-    central_vector = look_at_vector * camera.screen_dist
-    x = np.NDArray((1, 1, 1))  # take a random vector
-    x -= x.dot(central_vector) * central_vector  # make it orthogonal to central_vector
-    x /= np.linalg.norm(x)
-    y = np.cross(central_vector, x)
+
+def find_sphere_intersect(scene, ray, sphere):
+    O = sphere.center_pos
+    P0 = scene.camera.pos
+    L = O - P0
+    V = ray
+    r = sphere.radius
+    r_squared = r**2
+
+    tca = np.dot(L, V)
+    if tca < 0:  # sphere is in the back
+        return -1
+    d_squared = np.dot(L, L) - tca**2
+    if d_squared > r_squared:  # outside of sphere
+        return -1
+    thc = (r_squared-d_squared)**0.5
+    t = tca - thc
+    return t
+
+
+def find_plane_intersect(scene, ray, plane):
+    P0 = scene.camera.pos
+    N = plane.normal_vector
+    d = -1*plane.offset
+    V = ray
+    t = -1 * (np.dot(P0, N) + d) / np.dot(V, N)
+    return t
+
+
+def find_box_intersect(scene, ray, box):
+
+
+
+def find_min_intersect(scene, ray):
+    min_t = -1
+    min_surface = None
+    for sphere in scene.sphere_list:
+        t = find_sphere_intersect(scene, ray, sphere)
+        if min_t == -1 or 0 <= t <= min_t:
+            min_t = t
+            min_surface = sphere
+
+    for plane in scene.plane_list:
+        t = find_plane_intersect(scene, ray, plane)
+        if min_t == -1 or 0 <= t <= min_t:
+            min_t = t
+            min_surface = plane
+
+    for box in scene.box_list:
+        t = find_box_intersect(scene, ray, box)
+        if min_t == -1 or 0 <= t <= min_t:
+            min_t = t
+            min_surface = box
+
+    return min_surface, min_t
 
 
 def save_image(image, output_path):
@@ -173,6 +226,7 @@ def save_image(image, output_path):
 
 def main(scene_path, output_path, img_width=500, img_height=500):
     scene = parse_scene(scene_path, img_height/img_width)
+    # TODO: understand if we need to change the matrix coordinate (end of lecture 5)
     image = np.zeros((img_width, img_height, 3), dtype=float)
     for i in range(img_width):
         for j in range(img_height):
