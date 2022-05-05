@@ -1,7 +1,7 @@
 import os
 import sys
 import numpy as np
-import Random
+import random
 from PIL import Image
 
 
@@ -269,13 +269,24 @@ def calc_surface_color(scene, surface, min_intersect):
     reflection_col = (scene.material_list[surface.material_idx]).reflection_color
 
     normal = calc_surface_normal(surface, min_intersect)
-    normal = normal / np.linalg.norm(normal)
+    normal /= np.linalg.norm(normal)
     for light in scene.light_list:
+        # Calc light effect on diffuse color
         light_direction = min_intersect - light.pos
-        soft_shadow_precent = soft_shadow_precent(scene.settings.N, light, min_intersect)
+        soft_shadow_fraction = soft_shadow_fraction(scene, scene.settings.N, light, min_intersect)
+        light_intensity = (1 - light.shadow_intens) + (light.shadow_intens * soft_shadow_fraction)
+        diffuse_col *= light_intensity * normal.dot(light_direction)
+
+        # Calc light effect on specular color
+        L = np.array(min_intersect - light.pos)
+        R = L - 2 * (L.dot(normal)) * normal
+        V = np.array(scene.camera.pos - min_intersect)
+        surface_matrial = scene.material_list[surface.material_idx]
+        n = surface_matrial.phong_coeff
+        specular_col *= light_intensity * ((R.dot(V))**n)
 
     output_color = bg_col * trans_val + (diffuse_col + specular_col) * (1 - trans_val) + reflection_col
-    return None
+    return output_color
 
 
 def ray_casting(scene, img_width, img_height):
@@ -296,35 +307,46 @@ def ray_casting(scene, img_width, img_height):
 
 def calc_surface_normal(surface, min_intersect):
     if type(surface) == Sphere:
-        return min_intersect - surface.sphere.center_pos
+        return np.array(min_intersect - surface.sphere.center_pos)
 
     elif type(surface) == Plane:
-        return surface.normal
+        return np.array(surface.normal)
 
     else:
         pass # TODO fill
 
 
-def soft_shadow_precent(N, light, min_intersect):
+def soft_shadow_fraction(scene, N, light, min_intersect):
+    light_ray_direct = min_intersect - light.pos
+    light_ray_direct /= np.linalg.norm(light_ray_direct)
+
     # Create perpendicular plane x,y to ray
-    x = np.array(1,1,1)
-    x -= x.dot(k) * ray # make it orthogonal to ray
+    x = np.array(1, 1, 1)
+    x -= x.dot(light_ray_direct) * light_ray_direct # make it orthogonal to ray
     x /= np.linalg.norm(x)  # normalize x
-    y = np.cross(ray, x)
+    y = np.cross(light_ray_direct, x)
+
     # Create rectangle
     left_bottom_cell = light.pos - light.light_radius / 2 * x - light.light_radius / 2 * y
+
     # Normalize rectangle directions by cell size:
     cell_width = light.light_radius / N
     cell_height = light.light_radius / N
     x *= cell_width
     y *= cell_height
+    intersect_counter = 0
+
+    # Cast ray from cell to point and see if intersect with our point first
     for i in range(N):
         for j in range(N):
             cell_pos = left_bottom_cell + i * x + j * y
             cell_pos += random.random() * x + random.random() * y
             ray_direction = min_intersect - cell_pos
-            ray = Ray(light.pos, (ray_direction) / np.linalg.norm(ray_direction))
-
+            cell_light_ray = Ray(light.pos, ray_direction / np.linalg.norm(ray_direction))
+            cell_surface, cell_min_intersect = find_min_intersect(scene, cell_light_ray)
+            if cell_min_intersect == min_intersect:
+                intersect_counter += 1
+    return intersect_counter / (N * N)
 
 
 def main(scene_path, output_path, img_width=500, img_height=500):
