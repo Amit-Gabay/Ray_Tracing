@@ -157,7 +157,7 @@ def find_plane_intersect(scene, ray, plane):
 
 
 def find_box_intersect(scene, ray, box):
-    pass
+    pass  # TODO fill
 
 
 def find_min_intersect(scene, ray):
