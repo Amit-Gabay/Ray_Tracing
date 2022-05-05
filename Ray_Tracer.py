@@ -25,7 +25,7 @@ def parse_scene(scene_path, asp_ratio):
         if obj_name == b'cam':
             pos = np.NDarray((float(line[1]), float(line[2]), float(line[3])))
             look_at = np.NDArray((float(line[4]), float(line[5]), float(line[6])))
-            up_vector = np.NDArray((float(line[7]), float(line[8]), float(line[9]))) #TODO: Fix the up vector!!!
+            up_vector = np.NDArray((float(line[7]), float(line[8]), float(line[9])))  # TODO: Fix the up vector!!!
             screen_dist = float(line[10])
             screen_width = float(line[11])
             screen_height = screen_width * asp_ratio
@@ -115,7 +115,7 @@ def construct_pixel_ray(camera, screen, i, j):
     #return V
 
 
-def ray_casting(scene, img_width, img_height):
+def ray_tracing(scene, img_width, img_height, output_path):
     # TODO: understand if we need to change the matrix coordinate (end of lecture 5)
     image = np.zeros((img_width, img_height, 3), dtype=float)
     screen = represent_screen(scene.camera, img_width, img_height)
@@ -123,10 +123,7 @@ def ray_casting(scene, img_width, img_height):
         for j in range(img_height):
             ray = construct_pixel_ray(scene.camera, screen, i, j)
             surface, min_intersect = find_min_intersect(scene, ray)
-            basic_color = calc_surface_color(scene, surface, min_intersect)
-            is_lit = trace_light_rays(scene, surface)
-            soft_shadow = produce_soft_shadow(scene.surface)
-            output_color = calc_output_color()
+            output_color = calc_surface_color(scene, surface, min_intersect)
             image[i, j] = output_color
     save_image(image, output_path)
 
@@ -252,8 +249,8 @@ def calc_surface_color(scene, surface, min_intersect):
         L = np.array(min_intersect - light.pos)
         R = L - 2 * (L.dot(normal)) * normal
         V = np.array(scene.camera.pos - min_intersect)
-        surface_matrial = scene.material_list[surface.material_idx]
-        n = surface_matrial.phong_coeff
+        surface_material = scene.material_list[surface.material_idx]
+        n = surface_material.phong_coeff
         specular_col *= light_intensity * ((R.dot(V))**n)
 
     output_color = bg_col * trans_val + (diffuse_col + specular_col) * (1 - trans_val) + reflection_col
@@ -268,7 +265,7 @@ def save_image(image, output_path):
 def main(scene_path, output_path, img_width=500, img_height=500):
     aspect_ratio = img_height/img_width
     scene = parse_scene(scene_path, aspect_ratio)
-    ray_casting(scene, img_width, img_height)
+    ray_tracing(scene, img_width, img_height, output_path)
 
 
 if __name__ == '__main__':
@@ -276,4 +273,4 @@ if __name__ == '__main__':
         main(sys.argv[1], sys.argv[2])
 
     if len(sys.argv) == 5:
-        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+        main(sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))
