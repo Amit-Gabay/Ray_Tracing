@@ -19,6 +19,7 @@ class Camera:
     def __init__(self, pos, look_at, up_vector, screen_dist, screen_width, screen_height):
         self.pos = pos
         self.look_at = look_at
+        self.towards = look_at - pos
         self.up_vector = up_vector
         self.screen_dist = screen_dist
         self.screen_width = screen_width
@@ -33,10 +34,10 @@ class Settings:
 
 
 class Material:
-    def __init__(self, diffuse_col, specular_col, reflection_col, phong_coeff, transparent_val):
-        self.diffuse_col = diffuse_col
-        self.specular_col = specular_col
-        self.reflection_col = reflection_col
+    def __init__(self, diffuse_color, specular_color, reflection_color, phong_coeff, transparent_val):
+        self.diffuse_color = diffuse_color
+        self.specular_color = specular_color
+        self.reflection_color = reflection_color
         self.phong_coeff = phong_coeff
         self.transparent_val = transparent_val
 
@@ -71,6 +72,22 @@ class Light:
         self.light_radius = light_radius
 
 
+class Ray:
+    def __init__(self, origin, direction):
+        self.origin = origin
+        self.direction = direction
+
+    def compute_point(self, scalar):
+        return self.origin + scalar * self.direction
+
+
+class Screen:
+    def __init__(self, corner_pixel, horizontal, vertical):
+        self.corner_pixel = corner_pixel
+        self.horizontal = horizontal
+        self.vertical = vertical
+
+
 def parse_scene(scene_path, asp_ratio):
     with open(scene_path, 'rb') as f:
         content = f.read()
@@ -91,7 +108,7 @@ def parse_scene(scene_path, asp_ratio):
         if obj_name == b'cam':
             pos = np.NDarray((float(line[1]), float(line[2]), float(line[3])))
             look_at = np.NDArray((float(line[4]), float(line[5]), float(line[6])))
-            up_vector = np.NDArray((float(line[7]), float(line[8]), float(line[9]))) #TODO: add fix
+            up_vector = np.NDArray((float(line[7]), float(line[8]), float(line[9]))) #TODO: Fix the up vector!!!
             screen_dist = float(line[10])
             screen_width = float(line[11])
             screen_height = screen_width * asp_ratio
@@ -141,28 +158,6 @@ def parse_scene(scene_path, asp_ratio):
     return scene
 
 
-def construct_pixel_ray(camera, i, j):
-    towards = camera.look_at - camera.pos
-    up = camera.up_vector
-    right = np.cross(towards, up)
-    P0 = camera.pos
-    d = camera.screen_dist
-    w = camera.screen_width
-    h = camera.screen_height
-
-    P_left = P0 + d * towards - (w * right) / 2
-    P_down = P0 + d * towards - (h * up) / 2
-    P = P_left + (j/w + 0.5) * w * right + P_down + (i/h + 0.5) * h * up
-    V = (P-P0) / np.linalg.norm(P-P0)
-    return V
-
-# perdicular plave from vector
-# x = np.NDArray((1, 1, 1))  # take a random vector
-# x -= x.dot(central_vector) * central_vector  # make it orthogonal to central_vector
-# x /= np.linalg.norm(x)
-# y = np.cross(central_vector, x)
-
-
 def find_sphere_intersect(scene, ray, sphere):
     O = sphere.center_pos
     P0 = scene.camera.pos
@@ -192,7 +187,7 @@ def find_plane_intersect(scene, ray, plane):
 
 
 def find_box_intersect(scene, ray, box):
-
+    pass
 
 
 def find_min_intersect(scene, ray):
@@ -216,7 +211,8 @@ def find_min_intersect(scene, ray):
             min_t = t
             min_surface = box
 
-    return min_surface, min_t
+    min_intersect = ray.compute_point(min_t)
+    return min_surface, min_intersect
 
 
 def save_image(image, output_path):
@@ -224,20 +220,80 @@ def save_image(image, output_path):
     img.save(output_path)
 
 
-def main(scene_path, output_path, img_width=500, img_height=500):
-    scene = parse_scene(scene_path, img_height/img_width)
+def construct_pixel_ray(camera, screen, i, j):
+    pixel_center = screen.corner_pixel + i * screen.horizontal + j * screen.vertical
+    ray_vector = pixel_center - camera.pos
+    pixel_ray = Ray(camera.pos, ray_vector)
+    return pixel_ray
+    #towards = camera.look_at - camera.pos
+    #up = camera.up_vector
+    #right = np.cross(towards, up)
+    #P0 = camera.pos
+    #d = camera.screen_dist
+    #w = camera.screen_width
+    #h = camera.screen_height
+
+    #P_left = P0 + d * towards - (w * right) / 2
+    #P_down = P0 + d * towards - (h * up) / 2
+    #P = P_left + (j/w + 0.5) * w * right + P_down + (i/h + 0.5) * h * up
+    #V = (P-P0) / np.linalg.norm(P-P0)
+    #return V
+
+
+def cross_product(a, b):
+    product = (a[1]*b[2] - a[2]*b[1],
+         a[2]*b[0] - a[0]*b[2],
+         a[0]*b[1] - a[1]*b[0])
+    return product
+
+
+def represent_screen(camera, width_pixels, height_pixels):
+    # Determine screen's horizontal, vertical vectors:
+    horizontal = cross_product(camera.towards, camera.up_vector)
+    vertical = cross_product(camera.towards, horizontal)
+    # Determine screen's leftmost bottom pixel (corner pixel):
+    left_bottom_pixel = camera.towrads * camera.screen_dist - camera.screen_width/2 * horizontal - camera.screen_height/2 * vertical
+    # Normalize screen's horizontal, vertical vectors by pixel's width / height:
+    pixel_width = camera.screen_width / width_pixels
+    pixel_height = camera.screen_height / height_pixels
+    horizontal = pixel_width * horizontal
+    vertical = pixel_height * vertical
+    # Represent the screen:
+    screen = Screen(left_bottom_pixel, horizontal, vertical)
+    return screen
+
+
+def calc_surface_color(scene, surface, min_intersect):
+    bg_col = scene.settings.bg_color
+    trans_val = (scene.material_list[surface.material_idx]).transparent_val
+    diffuse_col = (scene.material_list[surface.material_idx]).diffuse_color
+    specular_col = (scene.material_list[surface.material_idx]).specular_color
+    reflection_col = (scene.material_list[surface.material_idx]).reflection_color
+
+    output_color = bg_col * trans_val + (diffuse_col + specular_col) * (1 - trans_val) + reflection_col
+    return None
+
+
+def ray_casting(scene, img_width, img_height):
     # TODO: understand if we need to change the matrix coordinate (end of lecture 5)
     image = np.zeros((img_width, img_height, 3), dtype=float)
+    screen = represent_screen(scene.camera, img_width, img_height)
     for i in range(img_width):
         for j in range(img_height):
-            ray = construct_pixel_ray(scene.camera, i, j)
+            ray = construct_pixel_ray(scene.camera, screen, i, j)
             surface, min_intersect = find_min_intersect(scene, ray)
-            basic_color = calc_surface_color(scene, surface, min_itersect)
+            basic_color = calc_surface_color(scene, surface, min_intersect)
             is_lit = trace_light_rays(scene, surface)
-            soft_shadow = produce_soft_shadow(scene. surface)
+            soft_shadow = produce_soft_shadow(scene.surface)
             output_color = calc_output_color()
             image[i, j] = output_color
     save_image(image, output_path)
+
+
+def main(scene_path, output_path, img_width=500, img_height=500):
+    aspect_ratio = img_height/img_width
+    scene = parse_scene(scene_path, aspect_ratio)
+    ray_casting(scene, img_width, img_height)
 
 
 if __name__ == '__main__':
