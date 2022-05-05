@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+import Random
 from PIL import Image
 
 
@@ -240,24 +241,21 @@ def construct_pixel_ray(camera, screen, i, j):
     #return V
 
 
-def cross_product(a, b):
-    product = (a[1]*b[2] - a[2]*b[1],
-         a[2]*b[0] - a[0]*b[2],
-         a[0]*b[1] - a[1]*b[0])
-    return product
-
-
 def represent_screen(camera, width_pixels, height_pixels):
     # Determine screen's horizontal, vertical vectors:
-    horizontal = cross_product(camera.towards, camera.up_vector)
-    vertical = cross_product(camera.towards, horizontal)
+    horizontal = np.cross(camera.towards, camera.up_vector)
+    horizontal = horizontal / np.linalg.norm(horizontal)
+    vertical = np.cross(horizontal, camera.towards)
+    vertical = vertical / np.linalg.norm(vertical)
     # Determine screen's leftmost bottom pixel (corner pixel):
-    left_bottom_pixel = camera.towrads * camera.screen_dist - camera.screen_width/2 * horizontal - camera.screen_height/2 * vertical
+    left_bottom_pixel = camera.towards * camera.screen_dist - camera.screen_width/2 * horizontal - camera.screen_height/2 * vertical
     # Normalize screen's horizontal, vertical vectors by pixel's width / height:
     pixel_width = camera.screen_width / width_pixels
     pixel_height = camera.screen_height / height_pixels
     horizontal = pixel_width * horizontal
     vertical = pixel_height * vertical
+    # Align 'left_bottom_pixel' to the pixel's center:
+    left_bottom_pixel += 0.5*horizontal + 0.5*vertical
     # Represent the screen:
     screen = Screen(left_bottom_pixel, horizontal, vertical)
     return screen
@@ -269,6 +267,12 @@ def calc_surface_color(scene, surface, min_intersect):
     diffuse_col = (scene.material_list[surface.material_idx]).diffuse_color
     specular_col = (scene.material_list[surface.material_idx]).specular_color
     reflection_col = (scene.material_list[surface.material_idx]).reflection_color
+
+    normal = calc_surface_normal(surface, min_intersect)
+    normal = normal / np.linalg.norm(normal)
+    for light in scene.light_list:
+        light_direction = min_intersect - light.pos
+        soft_shadow_precent = soft_shadow_precent(scene.settings.N, light, min_intersect)
 
     output_color = bg_col * trans_val + (diffuse_col + specular_col) * (1 - trans_val) + reflection_col
     return None
@@ -288,6 +292,39 @@ def ray_casting(scene, img_width, img_height):
             output_color = calc_output_color()
             image[i, j] = output_color
     save_image(image, output_path)
+
+
+def calc_surface_normal(surface, min_intersect):
+    if type(surface) == Sphere:
+        return min_intersect - surface.sphere.center_pos
+
+    elif type(surface) == Plane:
+        return surface.normal
+
+    else:
+        pass # TODO fill
+
+
+def soft_shadow_precent(N, light, min_intersect):
+    # Create perpendicular plane x,y to ray
+    x = np.array(1,1,1)
+    x -= x.dot(k) * ray # make it orthogonal to ray
+    x /= np.linalg.norm(x)  # normalize x
+    y = np.cross(ray, x)
+    # Create rectangle
+    left_bottom_cell = light.pos - light.light_radius / 2 * x - light.light_radius / 2 * y
+    # Normalize rectangle directions by cell size:
+    cell_width = light.light_radius / N
+    cell_height = light.light_radius / N
+    x *= cell_width
+    y *= cell_height
+    for i in range(N):
+        for j in range(N):
+            cell_pos = left_bottom_cell + i * x + j * y
+            cell_pos += random.random() * x + random.random() * y
+            ray_direction = min_intersect - cell_pos
+            ray = Ray(light.pos, (ray_direction) / np.linalg.norm(ray_direction))
+
 
 
 def main(scene_path, output_path, img_width=500, img_height=500):
