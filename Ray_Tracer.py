@@ -48,19 +48,19 @@ def parse_scene(scene_path, asp_ratio):
         elif obj_name == b'sph':
             center_pos = (float(line[1]), float(line[2]), float(line[3]))
             radius = float(line[4])
-            material_idx = int(line[5])
+            material_idx = int(line[5]) - 1
             sphere_list.append(Sphere(center_pos, radius, material_idx))
 
         elif obj_name == b'pln':
             normal_vector = (float(line[1]), float(line[2]), float(line[3]))
             offset = float(line[4])
-            material_idx = int(line[5])
+            material_idx = int(line[5]) - 1
             plane_list.append(Plane(normal_vector, offset, material_idx))
 
         elif obj_name == b'box':
             center_pos = (float(line[1]), float(line[2]), float(line[3]))
             edge_len = float(line[4])
-            material_idx = int(line[5])
+            material_idx = int(line[5]) - 1
             box_list.append(Box(center_pos, edge_len, material_idx))
 
         elif obj_name == b'mtl':
@@ -200,7 +200,7 @@ def calc_surface_normal(surface, min_intersect):
         return np.array(min_intersect - surface.center_pos)
 
     elif type(surface) == Plane:
-        return np.array(surface.normal)
+        return np.array(surface.normal_vector)
 
     else:
         pass # TODO fill
@@ -241,7 +241,7 @@ def calc_soft_shadow_fraction(scene, N, light, min_intersect):
 
 def calc_surface_color(scene, surface, min_intersect, recursion_depth):
     bg_col = np.array(scene.settings.bg_color)
-    trans_val = np.array((scene.material_list[surface.material_idx]).transparent_val)
+    trans_val = (scene.material_list[surface.material_idx]).transparent_val
     diffuse_col = np.array((scene.material_list[surface.material_idx]).diffuse_color)
     specular_col = np.array((scene.material_list[surface.material_idx]).specular_color)
     reflection_col = np.array((scene.material_list[surface.material_idx]).reflection_color)
