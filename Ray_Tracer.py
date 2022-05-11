@@ -23,9 +23,9 @@ def parse_scene(scene_path, asp_ratio):
         obj_name = line[0]
 
         if obj_name == b'cam':
-            pos = np.NDarray((float(line[1]), float(line[2]), float(line[3])))
-            look_at = np.NDArray((float(line[4]), float(line[5]), float(line[6])))
-            up_vector = np.NDArray((float(line[7]), float(line[8]), float(line[9])))
+            pos = np.array((float(line[1]), float(line[2]), float(line[3])))
+            look_at = np.array((float(line[4]), float(line[5]), float(line[6])))
+            up_vector = np.array((float(line[7]), float(line[8]), float(line[9])))
             screen_dist = float(line[10])
             screen_width = float(line[11])
             screen_height = screen_width * asp_ratio
