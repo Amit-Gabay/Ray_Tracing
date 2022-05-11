@@ -126,7 +126,6 @@ def calc_pixel_color(scene, ray, recursion_depth=0):
 
 
 def ray_tracing(scene, img_width, img_height, output_path):
-    # TODO: understand if we need to change the matrix coordinate (end of lecture 5)
     image = np.zeros((img_width, img_height, 3), dtype=float)
     screen = represent_screen(scene.camera, img_width, img_height)
     for i in range(img_width):
