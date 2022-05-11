@@ -33,8 +33,8 @@ def parse_scene(scene_path, asp_ratio):
 
         elif obj_name == b'set':
             bg_color = (float(line[1]), float(line[2]), float(line[3]))
-            N = float(line[4])
-            max_recursion = float(line[5])
+            N = int(line[4])
+            max_recursion = int(line[5])
             settings = Settings(bg_color, N, max_recursion)
 
         elif obj_name == b'lgt':
@@ -48,19 +48,19 @@ def parse_scene(scene_path, asp_ratio):
         elif obj_name == b'sph':
             center_pos = (float(line[1]), float(line[2]), float(line[3]))
             radius = float(line[4])
-            material_idx = float(line[5])
+            material_idx = int(line[5])
             sphere_list.append(Sphere(center_pos, radius, material_idx))
 
         elif obj_name == b'pln':
             normal_vector = (float(line[1]), float(line[2]), float(line[3]))
             offset = float(line[4])
-            material_idx = float(line[5])
+            material_idx = int(line[5])
             plane_list.append(Plane(normal_vector, offset, material_idx))
 
         elif obj_name == b'box':
             center_pos = (float(line[1]), float(line[2]), float(line[3]))
             edge_len = float(line[4])
-            material_idx = float(line[5])
+            material_idx = int(line[5])
             box_list.append(Box(center_pos, edge_len, material_idx))
 
         elif obj_name == b'mtl':
@@ -142,7 +142,7 @@ def find_sphere_intersect(scene, ray, sphere):
     O = sphere.center_pos
     P0 = scene.camera.pos
     L = O - P0
-    V = ray
+    V = ray.direction
     r = sphere.radius
     r_squared = r**2
 
@@ -161,7 +161,7 @@ def find_plane_intersect(scene, ray, plane):
     P0 = scene.camera.pos
     N = plane.normal_vector
     d = -1*plane.offset
-    V = ray
+    V = ray.direction
     t = -1 * (np.dot(P0, N) + d) / np.dot(V, N)
     return t
 
@@ -197,7 +197,7 @@ def find_min_intersect(scene, ray):
 
 def calc_surface_normal(surface, min_intersect):
     if type(surface) == Sphere:
-        return np.array(min_intersect - surface.sphere.center_pos)
+        return np.array(min_intersect - surface.center_pos)
 
     elif type(surface) == Plane:
         return np.array(surface.normal)
@@ -211,8 +211,8 @@ def calc_soft_shadow_fraction(scene, N, light, min_intersect):
     light_ray_direct /= np.linalg.norm(light_ray_direct)
 
     # Create perpendicular plane x,y to ray
-    x = np.array(1, 1, 1)
-    x -= x.dot(light_ray_direct) * light_ray_direct # make it orthogonal to ray
+    x = np.array((1., 1., 1.))
+    x -= (np.dot(x, light_ray_direct) * np.array(light_ray_direct)) # make it orthogonal to ray
     x /= np.linalg.norm(x)  # normalize x
     y = np.cross(light_ray_direct, x)
 
@@ -234,17 +234,17 @@ def calc_soft_shadow_fraction(scene, N, light, min_intersect):
             ray_direction = min_intersect - cell_pos
             cell_light_ray = Ray(light.pos, ray_direction / np.linalg.norm(ray_direction))
             cell_surface, cell_min_intersect = find_min_intersect(scene, cell_light_ray)
-            if cell_min_intersect == min_intersect:
+            if cell_min_intersect.all() == min_intersect.all():
                 intersect_counter += 1
     return intersect_counter / (N * N)
 
 
 def calc_surface_color(scene, surface, min_intersect, recursion_depth):
-    bg_col = scene.settings.bg_color
-    trans_val = (scene.material_list[surface.material_idx]).transparent_val
-    diffuse_col = (scene.material_list[surface.material_idx]).diffuse_color
-    specular_col = (scene.material_list[surface.material_idx]).specular_color
-    reflection_col = (scene.material_list[surface.material_idx]).reflection_color
+    bg_col = np.array(scene.settings.bg_color)
+    trans_val = np.array((scene.material_list[surface.material_idx]).transparent_val)
+    diffuse_col = np.array((scene.material_list[surface.material_idx]).diffuse_color)
+    specular_col = np.array((scene.material_list[surface.material_idx]).specular_color)
+    reflection_col = np.array((scene.material_list[surface.material_idx]).reflection_color)
 
     normal = calc_surface_normal(surface, min_intersect)
     normal /= np.linalg.norm(normal)
