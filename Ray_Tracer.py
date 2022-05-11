@@ -25,7 +25,7 @@ def parse_scene(scene_path, asp_ratio):
         if obj_name == b'cam':
             pos = np.NDarray((float(line[1]), float(line[2]), float(line[3])))
             look_at = np.NDArray((float(line[4]), float(line[5]), float(line[6])))
-            up_vector = np.NDArray((float(line[7]), float(line[8]), float(line[9])))  # TODO: Fix the up vector!!!
+            up_vector = np.NDArray((float(line[7]), float(line[8]), float(line[9])))
             screen_dist = float(line[10])
             screen_width = float(line[11])
             screen_height = screen_width * asp_ratio
@@ -78,6 +78,8 @@ def parse_scene(scene_path, asp_ratio):
 def represent_screen(camera, width_pixels, height_pixels):
     # Determine screen's horizontal, vertical vectors:
     horizontal = np.cross(camera.towards, camera.up_vector)
+    # Fix the up vector:
+    camera.up_vector = np.cross(horizontal, camera.towards)
     horizontal = horizontal / np.linalg.norm(horizontal)
     vertical = np.cross(horizontal, camera.towards)
     vertical = vertical / np.linalg.norm(vertical)
@@ -115,6 +117,14 @@ def construct_pixel_ray(camera, screen, i, j):
     #return V
 
 
+def calc_pixel_color(scene, ray, recursion_depth=0):
+    if recursion_depth == scene.settings.max_recursion:
+        return scene.settings.bg_color
+    surface, min_intersect = find_min_intersect(scene, ray)
+    output_color = calc_surface_color(scene, surface, min_intersect, recursion_depth)
+    return output_color
+
+
 def ray_tracing(scene, img_width, img_height, output_path):
     # TODO: understand if we need to change the matrix coordinate (end of lecture 5)
     image = np.zeros((img_width, img_height, 3), dtype=float)
@@ -122,8 +132,9 @@ def ray_tracing(scene, img_width, img_height, output_path):
     for i in range(img_width):
         for j in range(img_height):
             ray = construct_pixel_ray(scene.camera, screen, i, j)
-            surface, min_intersect = find_min_intersect(scene, ray)
-            output_color = calc_surface_color(scene, surface, min_intersect)
+            output_color = calc_pixel_color(scene, ray)
+            #surface, min_intersect = find_min_intersect(scene, ray)
+            #output_color = calc_surface_color(scene, surface, min_intersect)
             image[i, j] = output_color
     save_image(image, output_path)
 
@@ -207,11 +218,11 @@ def calc_soft_shadow_fraction(scene, N, light, min_intersect):
     y = np.cross(light_ray_direct, x)
 
     # Create rectangle
-    left_bottom_cell = light.pos - light.light_radius / 2 * x - light.light_radius / 2 * y
+    left_bottom_cell = light.pos - light.light_radius * x - light.light_radius * y
 
     # Normalize rectangle directions by cell size:
-    cell_width = light.light_radius / N
-    cell_height = light.light_radius / N
+    cell_width = light.light_radius * 2 / N
+    cell_height = light.light_radius * 2 / N
     x *= cell_width
     y *= cell_height
     intersect_counter = 0
@@ -229,7 +240,7 @@ def calc_soft_shadow_fraction(scene, N, light, min_intersect):
     return intersect_counter / (N * N)
 
 
-def calc_surface_color(scene, surface, min_intersect):
+def calc_surface_color(scene, surface, min_intersect, recursion_depth):
     bg_col = scene.settings.bg_color
     trans_val = (scene.material_list[surface.material_idx]).transparent_val
     diffuse_col = (scene.material_list[surface.material_idx]).diffuse_color
@@ -251,7 +262,11 @@ def calc_surface_color(scene, surface, min_intersect):
         V = np.array(scene.camera.pos - min_intersect)
         surface_material = scene.material_list[surface.material_idx]
         n = surface_material.phong_coeff
-        specular_col *= light_intensity * ((R.dot(V))**n)
+        specular_col *= light_intensity * ((R.dot(V))**n) * light.specular_intens
+
+        # Recursively calc reflection color
+        reflection_ray = Ray(min_intersect, R)
+        reflection_col *= calc_pixel_color(scene, reflection_ray, recursion_depth+1)
 
     output_color = bg_col * trans_val + (diffuse_col + specular_col) * (1 - trans_val) + reflection_col
     return output_color
