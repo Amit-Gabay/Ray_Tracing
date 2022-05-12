@@ -8,37 +8,10 @@ from scene_utils import *
 from PIL import Image
 
 
-def represent_screen(camera, width_pixels, height_pixels):
-    # Determine screen's horizontal, vertical vectors:
-    horizontal = Vector(np.cross(camera.up_vector.dir, camera.towards.dir))
-    vertical = Vector(np.cross(horizontal.dir, camera.towards.dir))
-
-    # Fix camera's up vector:
-    camera.up_vector = vertical.dir
-
-    # Determine screen's leftmost bottom pixel (corner pixel):
-    screen_center = camera.pos + camera.towards.dir * camera.screen_dist
-    left_bottom_pixel = screen_center - (camera.screen_width/2 * horizontal.dir) - (camera.screen_height/2 * vertical.dir)
-
-    # Normalize screen's horizontal, vertical vectors by pixel's width / height:
-    pixel_width = camera.screen_width / width_pixels
-    pixel_height = camera.screen_height / height_pixels
-    horizontal.dir = pixel_width * horizontal.dir
-    vertical.dir = pixel_height * vertical.dir
-
-    # Align to the left bottom pixel's center:
-    left_bottom_pixel += 0.5 * horizontal.dir + 0.5 * vertical.dir
-
-    # Represent the screen:
-    screen = Screen(left_bottom_pixel, horizontal, vertical)
-    return screen
-
-
 def construct_pixel_ray(camera, screen, i, j):
     pixel_center = screen.corner_pixel + i * screen.horizontal.dir + j * screen.vertical.dir
-    ray_direction = pixel_center - camera.pos
-    ray_direction = ray_direction / np.linalg.norm(ray_direction)
-    pixel_ray = Ray(camera.pos, ray_direction)
+    ray_direction = Vector(pixel_center - camera.pos)
+    pixel_ray = Ray(camera.pos, ray_direction.dir)
     return pixel_ray
 
 
@@ -143,7 +116,7 @@ def save_image(image_array, output_path):
 
 def ray_tracing(scene, img_width, img_height, output_path):
     image_array = np.zeros((img_width, img_height, 3), dtype=float)
-    screen = represent_screen(scene.camera, img_width, img_height)
+    screen = scene_utils.represent_screen(scene.camera, img_width, img_height)
     for i in range(img_width):
         for j in range(img_height):
             ray = construct_pixel_ray(scene.camera, screen, i, j)

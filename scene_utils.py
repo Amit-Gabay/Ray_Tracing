@@ -160,3 +160,29 @@ def parse_scene(scene_path, asp_ratio):
 
     scene = Scene(camera, settings, sphere_list, plane_list, box_list, light_list, material_list)
     return scene
+
+
+def represent_screen(camera, width_pixels, height_pixels):
+    # Determine screen's horizontal, vertical vectors:
+    horizontal = Vector(np.cross(camera.up_vector.dir, camera.towards.dir))
+    vertical = Vector(np.cross(horizontal.dir, camera.towards.dir))
+
+    # Fix camera's up vector:
+    camera.up_vector = vertical.dir
+
+    # Determine screen's leftmost bottom pixel (corner pixel):
+    screen_center = camera.pos + camera.towards.dir * camera.screen_dist
+    left_bottom_pixel = screen_center - (camera.screen_width/2 * horizontal.dir) - (camera.screen_height/2 * vertical.dir)
+
+    # Normalize screen's horizontal, vertical vectors by pixel's width / height:
+    pixel_width = camera.screen_width / width_pixels
+    pixel_height = camera.screen_height / height_pixels
+    horizontal.dir = pixel_width * horizontal.dir
+    vertical.dir = pixel_height * vertical.dir
+
+    # Align to the left bottom pixel's center:
+    left_bottom_pixel += 0.5 * horizontal.dir + 0.5 * vertical.dir
+
+    # Represent the screen:
+    screen = Screen(left_bottom_pixel, horizontal, vertical)
+    return screen
