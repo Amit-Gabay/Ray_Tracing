@@ -60,7 +60,7 @@ def calc_soft_shadow_fraction(scene, light, min_intersect, surface):
             cell_pos = left_bottom_cell + i * x.dir + j * y.dir
             cell_pos += random.random() * x.dir + random.random() * y.dir
             ray_vector = Vector(np.array(min_intersect - cell_pos))
-            cell_light_ray = Ray(light.pos, ray_vector.dir)
+            cell_light_ray = Ray(cell_pos, ray_vector.dir)
             cell_surface, cell_min_intersect = intersect.find_min_intersect(scene, cell_light_ray)
             if cell_surface == surface:
                 intersect_counter += 1
@@ -106,20 +106,19 @@ def calc_surface_color(scene, surface, min_intersect, recursion_depth):
         additive_specular, reflection_ray = calc_specular_color(scene, light, light_intens, min_intersect, normal, phong_coeff)
         specular_color += additive_specular
         # Recursively calc reflection color
-        #reflection_color += calc_pixel_color(scene, reflection_ray, recursion_depth+1)
+        reflection_color += calc_pixel_color(scene, reflection_ray, recursion_depth+1)
 
-    diffuse_color = np.clip(diffuse_color * mat_diffuse, 0., 1.)
-    specular_color = np.clip(specular_color * mat_specular, 0., 1.)
-    #reflection_color = np.clip(mat_reflection * reflection_color, 0., 1.)
-    #specular_color = mat_specular
+    diffuse_color *= mat_diffuse
+    specular_color *= mat_specular
+    reflection_color *= mat_reflection
 
-    output_color = bg_color * trans_value + (diffuse_color + specular_color) * (1 - trans_value) #+ reflection_color
+    output_color = bg_color * trans_value + (diffuse_color + specular_color) * (1 - trans_value) + reflection_color
     return output_color
 
 
 def save_image(image_array, output_path):
+    image_array = np.clip(image_array, 0., 1.)
     image_array = 255.*image_array
-    print(image_array)
     image = Image.fromarray(image_array.astype('uint8'), 'RGB')
     image.save(output_path)
 
