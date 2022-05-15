@@ -75,29 +75,42 @@ def find_box_intersect(ray, box):
     return x_min
 
 
-def find_min_intersect(scene, ray):
+def find_intersect(scene, ray, find_all=True):
     # Initialize intersection's distance and surface:
     min_dist = -1
     min_surface = None
+    surfaces = []
 
     # Find nearest intersection with the scene surfaces:
     for sphere in scene.sphere_list:
         dist = find_sphere_intersect(ray, sphere)
-        if (min_dist == -1 and dist >= 0) or 0 <= dist < min_dist:
+        if find_all and dist > -1:
+            surfaces.append((sphere, dist))
+        elif (min_dist == -1 and dist >= 0) or 0 <= dist < min_dist:
             min_dist = dist
             min_surface = sphere
 
     for plane in scene.plane_list:
         dist = find_plane_intersect(ray, plane)
-        if (min_dist == -1 and dist >= 0) or 0 <= dist < min_dist:
+        if find_all and dist > -1:
+            surfaces.append((plane, dist))
+        elif (min_dist == -1 and dist >= 0) or 0 <= dist < min_dist:
             min_dist = dist
             min_surface = plane
 
     for box in scene.box_list:
         dist = find_box_intersect(ray, box)
-        if (min_dist == -1 and dist >= 0) or 0 <= dist < min_dist:
+        if find_all and dist > -1:
+            surfaces.append((box, dist))
+        elif (min_dist == -1 and dist >= 0) or 0 <= dist < min_dist:
             min_dist = dist
             min_surface = box
 
+    if find_all:
+        surfaces.sort(key=lambda tuple: tuple[1])
+        return surfaces
+
     min_intersect = ray.at(min_dist)
     return min_surface, min_intersect
+
+

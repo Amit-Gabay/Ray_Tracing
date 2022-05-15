@@ -15,13 +15,13 @@ def construct_pixel_ray(camera, screen, i, j):
     return pixel_ray
 
 
-def calc_pixel_color(scene, ray, recursion_depth=0):
+def calc_pixel_color(scene, ray, recursion_depth):
     if recursion_depth == scene.settings.max_recursion:
         return scene.settings.bg_color
-    surface, min_intersect = intersect.find_min_intersect(scene, ray)
+    surface, min_intersect = intersect.find_intersect(scene, ray, find_all=False)
     if surface == None:
         return scene.settings.bg_color
-    output_color = calc_surface_color(scene, surface, min_intersect, recursion_depth)
+    output_color = calc_surface_color(scene, ray, surface, min_intersect, recursion_depth)
     return output_color
 
 
@@ -36,7 +36,7 @@ def calc_surface_normal(surface, min_intersect):
         pass  # TODO fill
 
 
-def calc_soft_shadow_fraction(scene, light, min_intersect, surface):
+def calc_light_intens(scene, light, min_intersect, surface):
     N = scene.settings.N
     light_ray = Vector(np.array(min_intersect - light.pos))
 
@@ -61,28 +61,34 @@ def calc_soft_shadow_fraction(scene, light, min_intersect, surface):
             cell_pos += random.random() * x.dir + random.random() * y.dir
             ray_vector = Vector(np.array(min_intersect - cell_pos))
             cell_light_ray = Ray(cell_pos, ray_vector.dir)
-            cell_surface, cell_min_intersect = intersect.find_min_intersect(scene, cell_light_ray)
+            cell_surface, cell_min_intersect = intersect.find_intersect(scene, cell_light_ray, find_all=False)
             if cell_surface == surface:
                 intersect_counter += 1
-    return float(intersect_counter) / float(N * N)
+    fraction = float(intersect_counter) / float(N * N)
+    return (1 - light.shadow_intens) + (light.shadow_intens * fraction)
 
 
 def calc_specular_color(scene, light, light_intens, min_intersect, normal, phong_coeff):
     L = Vector(np.array(min_intersect - light.pos))
     R = Vector(L.dir - (2 * np.dot(L.dir, normal.dir) * normal.dir))
     V = Vector(np.array(scene.camera.pos - min_intersect))
-
-    reflection_ray = Ray(min_intersect, R.dir)
-
-    return light.color * light_intens * (np.dot(R.dir, V.dir) ** phong_coeff) * light.specular_intens, reflection_ray
+    dot_product = np.dot(R.dir, V.dir)
+    if dot_product < 0:
+        return np.zeros(3, dtype=float)
+    specular = light.color * light_intens * (dot_product ** phong_coeff) * light.specular_intens
+    return specular
 
 
 def calc_diffuse_color(light, light_intens, min_intersect, normal):
     light_vector = Vector(np.array(light.pos - min_intersect))
-    return light.color * light_intens * np.dot(normal.dir, light_vector.dir)
+    dot_product = np.dot(normal.dir, light_vector.dir)
+    if dot_product < 0:
+        return np.zeros(3, dtype=float)
+    diffuse = light.color * light_intens * dot_product
+    return diffuse
 
 
-def calc_surface_color(scene, surface, min_intersect, recursion_depth):
+def calc_surface_color(scene, ray, surface, min_intersect, recursion_depth):
     bg_color = np.array(scene.settings.bg_color)
     trans_value = (scene.material_list[surface.material_idx]).transparent_val
     mat_diffuse = np.array((scene.material_list[surface.material_idx]).diffuse_color)
@@ -92,21 +98,21 @@ def calc_surface_color(scene, surface, min_intersect, recursion_depth):
 
     diffuse_color = np.zeros(3, dtype=float)
     specular_color = np.zeros(3, dtype=float)
-    reflection_color = np.zeros(3, dtype=float)
 
     normal = calc_surface_normal(surface, min_intersect)
     for light in scene.light_list:
-        # Compute soft shadows fraction
-        soft_shadow_frac = calc_soft_shadow_fraction(scene, light, min_intersect, surface)
-        light_intens = ((1 - light.shadow_intens) + (light.shadow_intens * soft_shadow_frac))
-
+        # Calculate the light intensity
+        light_intens = calc_light_intens(scene, light, min_intersect, surface)
         # Compute light effect on diffuse color
         diffuse_color += calc_diffuse_color(light, light_intens, min_intersect, normal)
         # Compute light effect on specular color
-        additive_specular, reflection_ray = calc_specular_color(scene, light, light_intens, min_intersect, normal, phong_coeff)
-        specular_color += additive_specular
-        # Recursively calc reflection color
-        reflection_color += calc_pixel_color(scene, reflection_ray, recursion_depth+1)
+        specular_color += calc_specular_color(scene, light, light_intens, min_intersect, normal, phong_coeff)
+
+    reflection_vector = Vector(ray.dir - (2 * np.dot(ray.dir, normal.dir) * normal.dir))
+    reflection_ray = Ray(min_intersect, reflection_vector.dir)
+    reflection_color = calc_pixel_color(scene, reflection_ray, recursion_depth+1)
+
+    #bg_color *= calc_background_color()
 
     diffuse_color *= mat_diffuse
     specular_color *= mat_specular
@@ -129,7 +135,7 @@ def ray_tracing(scene, img_width, img_height, output_path):
     for i in range(img_width):
         for j in range(img_height):
             ray = construct_pixel_ray(scene.camera, screen, i, j)
-            output_color = calc_pixel_color(scene, ray)
+            output_color = calc_pixel_color(scene, ray, 0)
             image_array[j, i] = output_color
     save_image(image_array, output_path)
 
