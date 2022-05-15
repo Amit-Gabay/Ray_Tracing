@@ -1,6 +1,9 @@
 import numpy as np
 
 
+EPSILON = 10**-9
+
+
 def find_sphere_intersect(ray, sphere):
     L = sphere.center_pos - ray.orig
     t_ca = np.dot(L, ray.dir)
@@ -86,7 +89,7 @@ def find_intersect(scene, ray, find_all=True):
         dist = find_sphere_intersect(ray, sphere)
         if find_all and dist > -1:
             surfaces.append((sphere, dist))
-        elif (min_dist == -1 and dist >= 0) or 0 <= dist < min_dist:
+        elif (min_dist == -1 and dist >= EPSILON) or EPSILON <= dist < min_dist:
             min_dist = dist
             min_surface = sphere
 
@@ -94,7 +97,7 @@ def find_intersect(scene, ray, find_all=True):
         dist = find_plane_intersect(ray, plane)
         if find_all and dist > -1:
             surfaces.append((plane, dist))
-        elif (min_dist == -1 and dist >= 0) or 0 <= dist < min_dist:
+        elif (min_dist == -1 and dist >= EPSILON) or EPSILON <= dist < min_dist:
             min_dist = dist
             min_surface = plane
 
@@ -102,7 +105,7 @@ def find_intersect(scene, ray, find_all=True):
         dist = find_box_intersect(ray, box)
         if find_all and dist > -1:
             surfaces.append((box, dist))
-        elif (min_dist == -1 and dist >= 0) or 0 <= dist < min_dist:
+        elif (min_dist == -1 and dist >= EPSILON) or EPSILON <= dist < min_dist:
             min_dist = dist
             min_surface = box
 

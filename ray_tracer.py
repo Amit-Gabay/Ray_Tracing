@@ -36,7 +36,7 @@ def calc_surface_normal(surface, min_intersect):
         pass  # TODO fill
 
 
-def calc_light_intens(scene, light, min_intersect, surface):
+def calc_light_intensity(scene, light, min_intersect, surface):
     N = scene.settings.N
     light_ray = Vector(np.array(min_intersect - light.pos))
 
@@ -55,6 +55,7 @@ def calc_light_intens(scene, light, min_intersect, surface):
 
     # Cast ray from cell to point and see if intersect with our point first
     intersect_counter = 0
+    #cell_pos_matrix = np.array((N, N, 3), left_bottom_cell, dtype=float)
     for i in range(N):
         for j in range(N):
             cell_pos = left_bottom_cell + i * x.dir + j * y.dir
@@ -104,7 +105,7 @@ def calc_surface_color(scene, ray, surfaces, curr_surface, recursion_depth):
     normal = calc_surface_normal(min_surface, min_intersect)
     for light in scene.light_list:
         # Calculate the light intensity
-        light_intens = calc_light_intens(scene, light, min_intersect, min_surface)
+        light_intens = calc_light_intensity(scene, light, min_intersect, min_surface)
         # Compute light effect on diffuse color
         diffuse_color += calc_diffuse_color(light, light_intens, min_intersect, normal)
         # Compute light effect on specular color
