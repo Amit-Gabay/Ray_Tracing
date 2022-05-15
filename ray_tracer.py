@@ -55,7 +55,6 @@ def calc_light_intensity(scene, light, min_intersect, surface):
 
     # Cast ray from cell to point and see if intersect with our point first
     intersect_counter = 0
-    #cell_pos_matrix = np.array((N, N, 3), left_bottom_cell, dtype=float)
     for i in range(N):
         for j in range(N):
             cell_pos = left_bottom_cell + i * x.dir + j * y.dir
