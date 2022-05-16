@@ -115,7 +115,9 @@ class Vector:
         self.dir = dir / np.linalg.norm(dir)
 
     def perpendicular_vector(self):
-        vector = np.cross(self.dir, np.array([0, 0, 1]))
+        vector = np.cross(self.dir, np.array([1, 0, 0]))
+        if (vector == 0).all():
+            vector = np.cross(self.dir, np.array([0, 1, 0]))
         vector /= np.linalg.norm(vector)
         return vector
 

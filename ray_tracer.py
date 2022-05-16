@@ -18,12 +18,12 @@ def construct_pixel_ray(camera, screen, i, j):
 
 def calc_pixel_color(scene, ray, recursion_depth):
     if recursion_depth == scene.settings.max_recursion:
-        return scene.settings.bg_color
+        return np.array(scene.settings.bg_color)
     surfaces = intersect.find_intersect(scene, ray, find_all=True)
     if len(surfaces) == 0:
-        return scene.settings.bg_color
+        return np.array(scene.settings.bg_color)
     output_color = calc_surface_color(scene, ray, surfaces, 0, recursion_depth)
-    return output_color
+    return np.array(output_color)
 
 
 def calc_surface_normal(surface, min_intersect):
