@@ -34,7 +34,36 @@ def calc_surface_normal(surface, min_intersect):
         return surface.normal_vector
 
     else:
-        pass  # TODO fill
+        return calc_box_normal(surface, min_intersect)
+
+
+def calc_box_normal(box, min_intersect):
+    intersect_x = min_intersect[0]
+    intersect_y = min_intersect[1]
+    intersect_z = min_intersect[2]
+    center_x = box.center_pos[0]
+    center_y = box.center_pos[1]
+    center_z = box.center_pos[2]
+    edge_len = box.edge_len
+
+    # intersection is on the upper x-parallel plane
+    if intersect_x - center_x == edge_len/2:
+        return np.array((1, 0, 0))
+    # intersection is on the lower x-parallel plane
+    elif center_x - intersect_x == edge_len/2:
+        return np.array((-1, 0, 0))
+    # intersection is on the upper y-parallel plane
+    elif intersect_y - center_y == edge_len/2:
+        return np.array((0, 1, 0))
+    # intersection is on the lower y-parallel plane
+    elif center_y - intersect_y == edge_len/2:
+        return np.array((0, -1, 0))
+    # intersection is on the upper z-parallel plane
+    elif intersect_z - center_z == edge_len/2:
+        return np.array((0, 0, 1))
+    # intersection is on the lower z-parallel plane
+    else:
+        return np.array((0, 0, -1))
 
 
 def calc_light_intensity(scene, light, min_intersect, surface):
