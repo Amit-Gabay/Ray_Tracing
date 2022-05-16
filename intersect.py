@@ -24,12 +24,12 @@ def find_sphere_intersect(ray, sphere):
 
 
 def find_plane_intersect(ray, plane):
-    P0 = ray.orig
-    N = plane.normal_vector.dir
-    d = -1 * plane.offset
-    V = ray.dir
-    t = -1 * (np.dot(P0, N) + d) / np.dot(V, N)
-    return t
+    # P0 = ray.orig
+    # N = plane.normal_vector.dir
+    # d = -1 * plane.offset
+    # V = ray.dir
+    # t = -1 * (np.dot(P0, N) + d) / np.dot(V, N)
+    return (-1 * (np.dot(ray.orig, plane.normal_vector.dir) - plane.offset)) / np.dot(ray.dir, plane.normal_vector.dir)
 
 
 def find_box_intersect(ray, box):
@@ -87,7 +87,7 @@ def find_intersect(scene, ray, find_all=True):
     # Find nearest intersection with the scene surfaces:
     for sphere in scene.sphere_list:
         dist = find_sphere_intersect(ray, sphere)
-        if find_all and dist > -1:
+        if find_all and dist >= EPSILON:
             surfaces.append((sphere, dist))
         elif (min_dist == -1 and dist >= EPSILON) or EPSILON <= dist < min_dist:
             min_dist = dist
@@ -95,7 +95,7 @@ def find_intersect(scene, ray, find_all=True):
 
     for plane in scene.plane_list:
         dist = find_plane_intersect(ray, plane)
-        if find_all and dist > -1:
+        if find_all and dist >= EPSILON:
             surfaces.append((plane, dist))
         elif (min_dist == -1 and dist >= EPSILON) or EPSILON <= dist < min_dist:
             min_dist = dist
@@ -103,7 +103,7 @@ def find_intersect(scene, ray, find_all=True):
 
     for box in scene.box_list:
         dist = find_box_intersect(ray, box)
-        if find_all and dist > -1:
+        if find_all and dist >= EPSILON:
             surfaces.append((box, dist))
         elif (min_dist == -1 and dist >= EPSILON) or EPSILON <= dist < min_dist:
             min_dist = dist

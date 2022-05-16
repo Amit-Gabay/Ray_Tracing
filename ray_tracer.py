@@ -43,35 +43,40 @@ def calc_light_intensity(scene, light, min_intersect, surface):
 
     # Create perpendicular plane x,y to ray
     x = light_ray.perpendicular_vector()
-    y = Vector(np.cross(light_ray.dir, x.dir))
+    y = np.cross(light_ray.dir, x)
+    y /= np.linalg.norm(y)
 
     # Create rectangle
-    left_bottom_cell = light.pos - light.light_radius * x.dir - light.light_radius * y.dir
+    left_bottom_cell = light.pos - light.light_radius * x - light.light_radius * y
 
     # Normalize rectangle directions by cell size:
     cell_length = light.light_radius * 2 / N
-    x.dir *= cell_length
-    y.dir *= cell_length
+    x *= cell_length
+    y *= cell_length
 
     # Cast ray from cell to point and see if intersect with our point first
-    intersect_counter = 0
+    intersect_counter = 0.
     for i in range(N):
         for j in range(N):
-            cell_pos = left_bottom_cell + (i + random.random()) * x.dir + (j + random.random()) * y.dir
-            ray_vector = Vector(min_intersect - cell_pos)
-            cell_light_ray = Ray(cell_pos, ray_vector.dir)
+            cell_pos = left_bottom_cell + (i + random.random()) * x + (j + random.random()) * y
+            ray_vector = min_intersect - cell_pos
+            ray_vector /= np.linalg.norm(ray_vector)
+            cell_light_ray = Ray(cell_pos, ray_vector)
             cell_surface, cell_min_intersect = intersect.find_intersect(scene, cell_light_ray, find_all=False)
             if cell_surface == surface:
-                intersect_counter += 1
+                intersect_counter += 1.
     fraction = float(intersect_counter) / float(N * N)
     return (1 - light.shadow_intens) + (light.shadow_intens * fraction)
 
 
 def calc_specular_color(scene, light, light_intens, min_intersect, normal, phong_coeff):
-    L = Vector(min_intersect - light.pos)
-    R = Vector(L.dir - (2 * np.dot(L.dir, normal.dir) * normal.dir))
-    V = Vector(scene.camera.pos - min_intersect)
-    dot_product = np.dot(R.dir, V.dir)
+    L = min_intersect - light.pos
+    L /= np.linalg.norm(L)
+    R = L - (2 * np.dot(L, normal.dir) * normal.dir)
+    R /= np.linalg.norm(R)
+    V = scene.camera.pos - min_intersect
+    V /= np.linalg.norm(V)
+    dot_product = np.dot(R, V)
     if dot_product < 0:
         return np.zeros(3, dtype=float)
     specular = light.color * light_intens * (dot_product ** phong_coeff) * light.specular_intens
@@ -79,8 +84,9 @@ def calc_specular_color(scene, light, light_intens, min_intersect, normal, phong
 
 
 def calc_diffuse_color(light, light_intens, min_intersect, normal):
-    light_vector = Vector(light.pos - min_intersect)
-    dot_product = np.dot(normal.dir, light_vector.dir)
+    light_vector = light.pos - min_intersect
+    light_vector /= np.linalg.norm(light_vector)
+    dot_product = np.dot(normal.dir, light_vector)
     if dot_product < 0:
         return np.zeros(3, dtype=float)
     diffuse = light.color * light_intens * dot_product
@@ -109,8 +115,9 @@ def calc_surface_color(scene, ray, surfaces, curr_surface, recursion_depth):
         # Compute light effect on specular color
         specular_color += calc_specular_color(scene, light, light_intens, min_intersect, normal, phong_coeff)
 
-    reflection_vector = Vector(ray.dir - (2 * np.dot(ray.dir, normal.dir) * normal.dir))
-    reflection_ray = Ray(min_intersect, reflection_vector.dir)
+    reflection_vector = ray.dir - (2 * np.dot(ray.dir, normal.dir) * normal.dir)
+    reflection_vector /= np.linalg.norm(reflection_vector)
+    reflection_ray = Ray(min_intersect, reflection_vector)
     reflection_color = calc_pixel_color(scene, reflection_ray, recursion_depth+1)
 
     if trans_value > 0. and curr_surface < len(surfaces)-1:

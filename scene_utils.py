@@ -115,7 +115,9 @@ class Vector:
         self.dir = dir / np.linalg.norm(dir)
 
     def perpendicular_vector(self):
-        return Vector(np.cross(self.dir, np.array([0, 0, 1])))
+        vector = np.cross(self.dir, np.array([0, 0, 1]))
+        vector /= np.linalg.norm(vector)
+        return vector
 
 
 def parse_scene(scene_path, asp_ratio):
