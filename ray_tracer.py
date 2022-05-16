@@ -95,7 +95,7 @@ def calc_diffuse_color(light, light_intens, min_intersect, normal):
 
 def calc_surface_color(scene, ray, surfaces, curr_surface, recursion_depth):
     min_surface = surfaces[curr_surface][0]
-    bg_color = scene.settings.bg_color
+    bg_color = np.array(scene.settings.bg_color)
     trans_value = (scene.material_list[min_surface.material_idx]).transparent_val
     mat_diffuse = (scene.material_list[min_surface.material_idx]).diffuse_color
     mat_specular = (scene.material_list[min_surface.material_idx]).specular_color
