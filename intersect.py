@@ -24,11 +24,6 @@ def find_sphere_intersect(ray, sphere):
 
 
 def find_plane_intersect(ray, plane):
-    # P0 = ray.orig
-    # N = plane.normal_vector.dir
-    # d = -1 * plane.offset
-    # V = ray.dir
-    # t = -1 * (np.dot(P0, N) + d) / np.dot(V, N)
     return (-1 * (np.dot(ray.orig, plane.normal_vector.dir) - plane.offset)) / np.dot(ray.dir, plane.normal_vector.dir)
 
 

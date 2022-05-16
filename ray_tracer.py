@@ -47,10 +47,10 @@ def calc_light_intensity(scene, light, min_intersect, surface):
     y /= np.linalg.norm(y)
 
     # Create rectangle
-    left_bottom_cell = light.pos - light.light_radius * x - light.light_radius * y
+    left_bottom_cell = light.pos - (light.light_radius/2) * x - (light.light_radius/2) * y
 
     # Normalize rectangle directions by cell size:
-    cell_length = light.light_radius * 2 / N
+    cell_length = light.light_radius / N
     x *= cell_length
     y *= cell_length
 

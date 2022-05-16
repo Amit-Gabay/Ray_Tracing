@@ -137,6 +137,8 @@ def parse_scene(scene_path, asp_ratio):
         if len(line) == 0 or line[0] == b'#':
             continue
         line = line.split()
+        if len(line) == 0:
+            continue
         obj_name = line[0]
 
         if obj_name == b'cam':
