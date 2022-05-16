@@ -1,4 +1,5 @@
 import numpy as np
+from math import sqrt
 
 
 EPSILON = 10**-9
@@ -11,14 +12,13 @@ def find_sphere_intersect(ray, sphere):
     if t_ca < 0:
         return -1
 
-    r = sphere.radius
-    r_squared = r**2
+    r_squared = sphere.radius_squared
 
-    d_squared = np.dot(L, L) - t_ca**2
+    d_squared = np.dot(L, L) - t_ca * t_ca
     # If the ray is outside of sphere:
     if d_squared > r_squared:
         return -1
-    t_hc = (r_squared - d_squared)**0.5
+    t_hc = sqrt(r_squared - d_squared)
     t = t_ca - t_hc
     return t
 

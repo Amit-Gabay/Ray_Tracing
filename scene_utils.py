@@ -2,6 +2,8 @@ import numpy as np
 
 
 class Scene:
+    __slots__ = ('camera', 'settings', 'sphere_list', 'plane_list', 'box_list', 'light_list', 'material_list')
+
     def __init__(self, camera, settings, sphere_list, plane_list, box_list, light_list, material_list):
         self.camera = camera
         self.settings = settings
@@ -13,6 +15,8 @@ class Scene:
 
 
 class Camera:
+    __slots__ = ('pos', 'look_at', 'towards', 'up_vector', 'screen_dist', 'screen_width', 'screen_height')
+
     def __init__(self, pos, look_at, up_vector, screen_dist, screen_width, screen_height):
         self.pos = pos
         self.look_at = look_at
@@ -24,6 +28,8 @@ class Camera:
 
 
 class Settings:
+    __slots__ = ('bg_color', 'N', 'max_recursion')
+
     def __init__(self, bg_color, N, max_recursion):
         self.bg_color = bg_color
         self.N = N
@@ -31,6 +37,8 @@ class Settings:
 
 
 class Material:
+    __slots__ = ('diffuse_color', 'specular_color', 'reflection_color', 'phong_coeff', 'transparent_val')
+
     def __init__(self, diffuse_color, specular_color, reflection_color, phong_coeff, transparent_val):
         self.diffuse_color = diffuse_color
         self.specular_color = specular_color
@@ -40,6 +48,8 @@ class Material:
 
 
 class Plane:
+    __slots__ = ('normal_vector', 'offset', 'material_idx')
+
     def __init__(self, normal_vector, offset, material_idx):
         self.normal_vector = normal_vector
         self.offset = offset
@@ -47,13 +57,18 @@ class Plane:
 
 
 class Sphere:
+    __slots__ = ('center_pos', 'radius', 'radius_squared', 'material_idx')
+
     def __init__(self, center_pos, radius, material_idx):
         self.center_pos = center_pos
         self.radius = radius
+        self.radius_squared = radius * radius
         self.material_idx = material_idx
 
 
 class Box:
+    __slots__ = ('center_pos', 'edge_len', 'min_extent', 'max_extent', 'material_idx')
+
     def __init__(self, center_pos, edge_len, material_idx):
         self.center_pos = center_pos
         self.edge_len = edge_len
@@ -63,6 +78,8 @@ class Box:
 
 
 class Light:
+    __slots__ = ('pos', 'color', 'specular_intens', 'shadow_intens', 'light_radius')
+
     def __init__(self, pos, color, specular_intens, shadow_intens, light_radius):
         self.pos = pos
         self.color = color
@@ -72,6 +89,8 @@ class Light:
 
 
 class Ray:
+    __slots__ = ('orig', 'dir')
+
     def __init__(self, orig, dir):
         self.orig = orig
         self.dir = dir
@@ -81,6 +100,8 @@ class Ray:
 
 
 class Screen:
+    __slots__ = ('corner_pixel', 'horizontal', 'vertical')
+
     def __init__(self, corner_pixel, horizontal, vertical):
         self.corner_pixel = corner_pixel
         self.horizontal = horizontal
@@ -88,6 +109,8 @@ class Screen:
 
 
 class Vector:
+    __slots__ = ('dir')
+
     def __init__(self, dir):
         self.dir = dir / np.linalg.norm(dir)
 
