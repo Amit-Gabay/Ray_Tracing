@@ -16,13 +16,13 @@ def construct_pixel_ray(camera, screen, i, j):
     return pixel_ray
 
 
-def calc_pixel_color(scene, ray, recursion_depth):
+def calc_pixel_color(scene, ray, eye_pos, recursion_depth):
     if recursion_depth == scene.settings.max_recursion:
         return np.array(scene.settings.bg_color)
     surfaces = intersect.find_intersect(scene, ray, find_all=True)
     if len(surfaces) == 0:
         return np.array(scene.settings.bg_color)
-    output_color = calc_surface_color(scene, ray, surfaces, 0, recursion_depth)
+    output_color = calc_surface_color(scene, ray, eye_pos, surfaces, 0, recursion_depth)
     return np.array(output_color)
 
 
@@ -69,12 +69,12 @@ def calc_light_intensity(scene, light, min_intersect, surface):
     return (1 - light.shadow_intens) + (light.shadow_intens * fraction)
 
 
-def calc_specular_color(scene, light, light_intens, min_intersect, normal, phong_coeff):
+def calc_specular_color(light, eye_pos, light_intens, min_intersect, normal, phong_coeff):
     L = min_intersect - light.pos
     L /= np.linalg.norm(L)
     R = L - (2 * np.dot(L, normal.dir) * normal.dir)
     R /= np.linalg.norm(R)
-    V = scene.camera.pos - min_intersect
+    V = eye_pos - min_intersect
     V /= np.linalg.norm(V)
     dot_product = np.dot(R, V)
     if dot_product < 0:
@@ -93,7 +93,7 @@ def calc_diffuse_color(light, light_intens, min_intersect, normal):
     return diffuse
 
 
-def calc_surface_color(scene, ray, surfaces, curr_surface, recursion_depth):
+def calc_surface_color(scene, ray, eye_pos, surfaces, curr_surface, recursion_depth):
     min_surface = surfaces[curr_surface][0]
     bg_color = np.array(scene.settings.bg_color)
     trans_value = (scene.material_list[min_surface.material_idx]).transparent_val
@@ -113,15 +113,15 @@ def calc_surface_color(scene, ray, surfaces, curr_surface, recursion_depth):
         # Compute light effect on diffuse color
         diffuse_color += calc_diffuse_color(light, light_intens, min_intersect, normal)
         # Compute light effect on specular color
-        specular_color += calc_specular_color(scene, light, light_intens, min_intersect, normal, phong_coeff)
+        specular_color += calc_specular_color(light, eye_pos, light_intens, min_intersect, normal, phong_coeff)
 
     reflection_vector = ray.dir - (2 * np.dot(ray.dir, normal.dir) * normal.dir)
     reflection_vector /= np.linalg.norm(reflection_vector)
     reflection_ray = Ray(min_intersect, reflection_vector)
-    reflection_color = calc_pixel_color(scene, reflection_ray, recursion_depth+1)
+    reflection_color = calc_pixel_color(scene, reflection_ray, reflection_ray.orig, recursion_depth+1)
 
     if trans_value > 0. and curr_surface < len(surfaces)-1:
-        bg_color *= calc_surface_color(scene, ray, surfaces, curr_surface+1, 0)
+        bg_color *= calc_surface_color(scene, ray, eye_pos, surfaces, curr_surface+1, 0)
 
     diffuse_color *= mat_diffuse
     specular_color *= mat_specular
@@ -143,7 +143,7 @@ def ray_tracing(scene, img_width, img_height, output_path):
     for i in range(img_width):
         for j in range(img_height):
             ray = construct_pixel_ray(scene.camera, screen, i, j)
-            output_color = calc_pixel_color(scene, ray, 0)
+            output_color = calc_pixel_color(scene, ray, scene.camera.pos, 0)
             image_array[j, i] = output_color
     save_image(image_array, output_path)
 
