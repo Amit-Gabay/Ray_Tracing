@@ -1,6 +1,7 @@
 import scene_utils
 import intersect
 
+import time
 import sys
 import numpy as np
 import random
@@ -144,9 +145,12 @@ def ray_tracing(scene, img_width, img_height, output_path):
 
 
 def main(scene_path, output_path, img_width=500, img_height=500):
+    start = time.time()
     aspect_ratio = img_height/img_width
     scene = scene_utils.parse_scene(scene_path, aspect_ratio)
     ray_tracing(scene, img_width, img_height, output_path)
+    end = time.time()
+    print(f'Total time: {end-start}')
 
 
 if __name__ == '__main__':
