@@ -167,7 +167,7 @@ def save_image(image_array, output_path):
 
 
 def ray_tracing(scene, img_width, img_height, output_path):
-    image_array = np.zeros((img_width, img_height, 3), dtype=float)
+    image_array = np.zeros((img_height, img_width, 3), dtype=float)
     screen = scene_utils.represent_screen(scene.camera, img_width, img_height)
     for i in range(img_width):
         for j in range(img_height):
