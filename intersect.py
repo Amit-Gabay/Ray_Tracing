@@ -68,8 +68,6 @@ def find_box_intersect(ray, box):
 
     if z_min > x_min:
         x_min = z_min
-    if z_max < x_max:
-        x_max = z_max
     return x_min
 
 
@@ -112,3 +110,27 @@ def find_intersect(scene, ray, find_all=True):
     return min_surface, min_intersect
 
 
+def calc_box_normal(box, intersect):
+    center_x = box.center_pos[0]
+    center_y = box.center_pos[1]
+    center_z = box.center_pos[2]
+    edge_len = box.edge_len
+
+    # intersection is on the upper x-parallel plane
+    if abs((intersect[0] - center_x) - edge_len/2) < EPSILON:
+        return np.array((1, 0, 0))
+    # intersection is on the lower x-parallel plane
+    elif abs((center_x - intersect[0]) - edge_len/2) < EPSILON:
+        return np.array((-1, 0, 0))
+    # intersection is on the upper y-parallel plane
+    elif abs((intersect[1] - center_y) - edge_len/2) < EPSILON:
+        return np.array((0, 1, 0))
+    # intersection is on the lower y-parallel plane
+    elif abs((center_y - intersect[1]) - edge_len/2) < EPSILON:
+        return np.array((0, -1, 0))
+    # intersection is on the upper z-parallel plane
+    elif abs((intersect[2] - center_z) - edge_len/2) < EPSILON:
+        return np.array((0, 0, 1))
+    # intersection is on the lower z-parallel plane
+    else:
+        return np.array((0, 0, -1))
