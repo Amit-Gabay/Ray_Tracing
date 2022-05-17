@@ -34,7 +34,7 @@ def calc_surface_normal(surface, min_intersect):
         return surface.normal_vector
 
     else:
-        return calc_box_normal(surface, min_intersect)
+        return Vector(calc_box_normal(surface, min_intersect))
 
 
 def calc_box_normal(box, min_intersect):
