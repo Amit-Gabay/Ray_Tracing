@@ -9,6 +9,9 @@ from scene_utils import *
 from PIL import Image
 
 
+EPSILON = 10**-9
+
+
 def construct_pixel_ray(camera, screen, i, j):
     pixel_center = screen.corner_pixel + i * screen.horizontal.dir + j * screen.vertical.dir
     ray_direction = Vector(np.array(pixel_center - camera.pos))
@@ -62,8 +65,8 @@ def calc_light_intensity(scene, light, min_intersect, surface):
             ray_vector = min_intersect - cell_pos
             ray_vector /= np.linalg.norm(ray_vector)
             cell_light_ray = Ray(cell_pos, ray_vector)
-            cell_surface, cell_min_intersect = intersect.find_intersect(scene, cell_light_ray, find_all=False)
-            if cell_surface == surface:
+            cell_surface, cell_intersect = intersect.find_intersect(scene, cell_light_ray, find_all=False)
+            if np.linalg.norm(cell_intersect - min_intersect) < EPSILON:
                 intersect_counter += 1.
     fraction = float(intersect_counter) / float(N * N)
     return (1 - light.shadow_intens) + (light.shadow_intens * fraction)
