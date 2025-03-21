@@ -2,10 +2,13 @@
 
 This project generates stunning 3D scenes using a ray tracing algorithm. Given a simple scene description file, the renderer produces realistic images with lighting, shadows, and reflections.
 
+
 Here’s an example of a rendered scene:
+
 ![image](https://github.com/user-attachments/assets/9befa618-e0cd-471f-90d7-9ceb03ba93f3)
 
 Which is made from a textual scene description file:
+
 ```
 # Camera: 	px   	py   	pz 	lx  	ly  	lz 	ux  	uy  	uz 	sc_dist	sc_width
 cam 	  	0    	0	-2.8 	0   	0   	0  	0   	1   	0  	1	1
